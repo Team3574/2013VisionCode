@@ -22,13 +22,13 @@ class Processor:
     Processor: Used to process images
     """
     
-    tmin1 = 29
+    tmin1 = 0
     tmin2 = 0
-    tmin3 = 103
+    tmin3 = 255
     
-    tmax1 = 120
-    tmax2 = 116
-    tmax3 = 239
+    tmax1 = 177
+    tmax2 = 155
+    tmax3 = 255
     
     def find_squares(self, img, debug = True):
         """
