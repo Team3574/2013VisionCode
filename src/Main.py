@@ -16,6 +16,7 @@
 
 import cv2
 from Processor import Processor
+from glob import glob
  
 # The if __name__ determines the scope in which the
 # file is running. If it is the current file running we
@@ -27,18 +28,16 @@ if __name__ == '__main__':
     debug = True
     
     # Use a camera?
-    camera = True
+    camera = False
     
     cameraNumber = 0
     
     # Create a Processor object
     processor = Processor()
-
-    # Creeate window
-    cv2.namedWindow("Processed")
-    cv2.namedWindow("bars")
     
     if debug:
+        cv2.namedWindow("bars")
+
         # Add trackbars to the window to adjust the min hsv values
         cv2.createTrackbar("H-Min", "bars", processor.tmin1, 255, processor.min1)
         cv2.createTrackbar("S-Min", "bars", processor.tmin2, 255, processor.min2)
@@ -50,26 +49,33 @@ if __name__ == '__main__':
         cv2.createTrackbar("V-Max", "bars", processor.tmax3, 255, processor.max3)
 
     if camera:
+        # Creeate window
+        cv2.namedWindow("Processed")
         # Create Video Capture
         cap = cv2.VideoCapture(cameraNumber)
-
-    while True:
-        if camera:
+        while True:
             # Get the current camera image
             ret, img = cap.read()
-        else:
-            img = cv2.imread("test_image.jpg")
-
-        # Returns the image and the ammount of squares found
-        img, num = processor.find_squares(img, debug = debug)
+            # Returns the image and the ammount of squares found
+            img, num = processor.find_squares(img, debug = debug)
+                    
+            # Show the processed image
+            cv2.imshow('Processed', img)
+            
+            print processor.centerpoints
+            
+            # Wait for a key press
+            if cv2.waitKey(30) >= 10:
+                #Exit the wile loop
+                break
         
-        #if i % 100 == 0:
-            #print num
-        
-        # Show the processed image
-        cv2.imshow('Processed', img)
-        
-        # Wait for a key press
-        if cv2.waitKey(30) >= 10:
-            #Exit the wile loop
-            break
+    else:
+        for image in glob('*.jpg'):
+            img = cv2.imread(image)
+            img, num = processor.find_squares(img, debug = debug)
+            cv2.namedWindow('processed' + str(image))
+            cv2.imshow('processed' + str(image), img)
+            print processor.centerpoints
+        cv2.waitKey(0)
+            
+    cv2.destroyAllWindows()

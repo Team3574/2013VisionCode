@@ -33,9 +33,11 @@ class Processor:
     
     scale = 0.02
     
+    # TODO: Calculate this
     distanceToTarget = 0
     
-    biggestLine = 0
+    # The centerpoints ordered from left to right
+    centerpoints = []
     
     def find_squares(self, img, debug = True, time = 0):
         """
@@ -76,9 +78,7 @@ class Processor:
         # Get all contours
         contours, hierarchy = cv2.findContours(thresh, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
     
-        lastContour = None
-        length = len(contours)
-        status = np.zeros((length, 1))
+        self.centerpoints = []
     
         # Check if the contours have 4 sides and store it if it does
         for contour in contours:
@@ -90,12 +90,27 @@ class Processor:
                     hull = cv2.approxPolyDP(hull, 0.04*cv2.arcLength(hull, True), True)
                     
                     if len(hull) == 4:
-                        length = self.lineLength(hull[0][0], hull[1][0])
-                        if time == 0:
-                            cv2.drawContours(img, [hull], 0, (255,255,255), thickness = -1)
+                        length1 = self.lineLength(hull[0][0], hull[1][0])
+                        length2 = self.lineLength(hull[3][0], hull[2][0])
+                        
+                        dimentionThreshX = self.lineLength(hull[0][0], hull[1][0])
+                        dimentionThreshY = self.lineLength(hull[1][0], hull[2][0])
+                                                
+                        if dimentionThreshY > 0:
+                            dimentionThresh = dimentionThreshX / dimentionThreshY
                         else:
-                            cv2.drawContours(img, [hull], 0, (0,255,0), thickness = 2)
-
+                            dimentionThresh = 0
+                        
+                        # bs check right now, change to only do squares within range
+                        if dimentionThresh < 3:
+                            if time == 0:
+                                cv2.drawContours(img, [hull], 0, (255,255,255), thickness = -1)
+                            else:
+                                center = self.calculateCenterPoint(hull)
+                                self.centerpoints.append(center)
+                                cv2.circle(img, center, 4, (0,255,0), 1)
+                                cv2.drawContours(img, [hull], 0, (0,255,0), thickness = 2)
+                self.organizePoints()
             # "Working" way
             if False:
                 rect = cv2.minAreaRect(contour)
@@ -159,16 +174,15 @@ class Processor:
         ans = pow(point2[0] - point1[0], 2) + pow(point2[1] - point1[1], 2)
         ans = math.sqrt(ans);
         return ans
+
+    def calculateCenterPoint(self, rect):
+        centerX = (rect[0][0][0] + rect[1][0][0] + rect[2][0][0] + rect[3][0][0]) / 4
+        centerY = (rect[0][0][1] + rect[1][0][1] + rect[2][0][1] + rect[3][0][1]) / 4
+        return (centerX, centerY)
         
-    def find_if_close(cnt1,cnt2):
-        row1,row2 = cnt1.shape[0],cnt2.shape[0]
-        for i in xrange(row1):
-            for j in xrange(row2):
-                dist = np.linalg.norm(cnt1[i]-cnt2[j])
-                if abs(dist) < 50 :
-                    return True
-                elif i==row1-1 and j==row2-1:
-                    return False
+    def organizePoints(self):
+        self.centerpoints.sort()
+                
         
     def min1(self, x):
         self.tmin1 = x
