@@ -23,8 +23,13 @@ from Processor import Processor
 # standard way of making sure it runs properly
 if __name__ == '__main__':
 
-    #Debug?
-    debug = True    
+    # Debug?
+    debug = True
+    
+    # Use a camera?
+    camera = True
+    
+    cameraNumber = 0
     
     # Create a Processor object
     processor = Processor()
@@ -44,15 +49,24 @@ if __name__ == '__main__':
         cv2.createTrackbar("S-Max", "bars", processor.tmax2, 255, processor.max2)
         cv2.createTrackbar("V-Max", "bars", processor.tmax3, 255, processor.max3)
 
-    # Create Video Capture
-    cap = cv2.VideoCapture(0)
+    if camera:
+        # Create Video Capture
+        cap = cv2.VideoCapture(cameraNumber)
+
+    i = 0
 
     while True:
-        # Get the current camera image
-        ret, img = cap.read()
+        if camera:
+            # Get the current camera image
+            ret, img = cap.read()
+        else:
+            img = cv2.imread("test_image.jpg")
 
         # Returns the image and the ammount of squares found
         img, num = processor.find_squares(img, debug = debug)
+        
+        if i % 100 == 0:
+            print num
         
         # Show the processed image
         cv2.imshow('Processed', img)

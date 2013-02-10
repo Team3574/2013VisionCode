@@ -24,11 +24,15 @@ class Processor:
     
     tmin1 = 0
     tmin2 = 0
-    tmin3 = 255
+    tmin3 = 200
     
-    tmax1 = 177
-    tmax2 = 155
+    tmax1 = 255
+    tmax2 = 255
     tmax3 = 255
+    
+    scale = 0.02
+    
+    lastPoints = []
     
     def find_squares(self, img, debug = True):
         """
@@ -54,6 +58,8 @@ class Processor:
     
         # Do in range
         thresh = cv2.inRange(hsv_img, THRESH_MIN, THRESH_MAX)
+        
+        thresh = cv2.dilate(thresh, None)
     
         # Show the threshed image
         if debug:
@@ -66,15 +72,40 @@ class Processor:
         contours, hierarchy = cv2.findContours(thresh, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
     
         # Check if the contours have 4 sides and store it if it does
-        for contour in contours:
-            contour_length = cv2.arcLength(contour, True) * 0.02
-            sides = cv2.approxPolyDP(contour, contour_length, True)
-    
-            if len(sides) == 4 and cv2.contourArea(sides) > 1000 and cv2.isContourConvex(sides):
-                squares.append(sides)
-    
+        for contour in contours:            
+            rect = cv2.minAreaRect(contour)
+            
+            # Find four vertices of rectangle from above rect
+            box = cv2.cv.BoxPoints(rect)
+            
+            # Round the values and make it integers
+            box = np.int0(np.around(box))
+            
+            # The box array looks like this
+            # [
+            #     point top right,
+            #     point top left,
+            #     point bottom left,
+            #     point bottom right
+            # ]
+            
+            #calculate the width / length
+            dimentionThreshX = (box[0][0] - box[1][0])
+            dimentionThreshY = (box[1][1] - box[3][1])
+            
+            if dimentionThreshY > 0:
+				dimentionThresh = dimentionThreshX / dimentionThreshY
+            else:
+                dimentionThresh = 0
+
+			# in a perfect world our box would always be 4.5 when
+			# dividing the width by length. So in this imperfect world
+			# we check if it is within a resonalble range
+            if dimentionThresh in range(4, 5):
+                squares.append(box)
+            
         # Draw all the squares
-        cv2.drawContours( img, squares, -1, (0, 255, 0), 3 )
+        cv2.polylines(img, squares, True, (0, 255, 0), 2)
     
         # Return the image we drew on and the number of squares found
         return img, len(squares)
@@ -127,3 +158,4 @@ if __name__ == '__main__':
         if cv2.waitKey(30) >= 10:
             #Exit the wile loop
             break
+
