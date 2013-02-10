@@ -35,9 +35,9 @@ class Processor:
     
     distanceToTarget = 0
     
-    lastPoints = []
+    biggestLine = 0
     
-    def find_squares(self, img, debug = True):
+    def find_squares(self, img, debug = True, time = 0):
         """
         find_squares: used to find squares in an image
         
@@ -63,6 +63,8 @@ class Processor:
         thresh = cv2.inRange(hsv_img, THRESH_MIN, THRESH_MAX)
         
         thresh = cv2.dilate(thresh, None)
+        
+        thresh = cv2.erode(thresh, None)
     
         # Show the threshed image
         if debug:
@@ -74,21 +76,28 @@ class Processor:
         # Get all contours
         contours, hierarchy = cv2.findContours(thresh, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
     
+        lastContour = None
+        length = len(contours)
+        status = np.zeros((length, 1))
+    
         # Check if the contours have 4 sides and store it if it does
         for contour in contours:
-            # working on other way
-            if False:
-                cnt_len = cv2.arcLength(contour, True)
-                contour = cv2.approxPolyDP(contour, 0.002*cnt_len, True)
-                
+            # New way
+            if True:
                 if cv2.contourArea(contour) > 1000:
+                
                     hull = cv2.convexHull(contour)
                     hull = cv2.approxPolyDP(hull, 0.04*cv2.arcLength(hull, True), True)
                     
                     if len(hull) == 4:
-                        cv2.drawContours(img, [hull], 0, (0,255,0), 2)
-                    
-            if True:
+                        length = self.lineLength(hull[0][0], hull[1][0])
+                        if time == 0:
+                            cv2.drawContours(img, [hull], 0, (255,255,255), thickness = -1)
+                        else:
+                            cv2.drawContours(img, [hull], 0, (0,255,0), thickness = 2)
+
+            # "Working" way
+            if False:
                 rect = cv2.minAreaRect(contour)
                 
                 # Find four vertices of rectangle from above rect
@@ -138,7 +147,10 @@ class Processor:
         cv2.polylines(img, squares, True, (0, 255, 0), 2)
     
         # Return the image we drew on and the number of squares found
-        return img, len(squares)
+        if time == 0:
+            return self.find_squares(img, time = 1)
+        else:
+            return img, len(squares)
     
     def calculateDistance(self, rect):
         print "test"
@@ -147,6 +159,16 @@ class Processor:
         ans = pow(point2[0] - point1[0], 2) + pow(point2[1] - point1[1], 2)
         ans = math.sqrt(ans);
         return ans
+        
+    def find_if_close(cnt1,cnt2):
+        row1,row2 = cnt1.shape[0],cnt2.shape[0]
+        for i in xrange(row1):
+            for j in xrange(row2):
+                dist = np.linalg.norm(cnt1[i]-cnt2[j])
+                if abs(dist) < 50 :
+                    return True
+                elif i==row1-1 and j==row2-1:
+                    return False
         
     def min1(self, x):
         self.tmin1 = x

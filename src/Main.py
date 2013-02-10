@@ -27,7 +27,7 @@ if __name__ == '__main__':
     debug = True
     
     # Use a camera?
-    camera = False
+    camera = True
     
     cameraNumber = 0
     
@@ -52,8 +52,6 @@ if __name__ == '__main__':
     if camera:
         # Create Video Capture
         cap = cv2.VideoCapture(cameraNumber)
-
-    i = 0
 
     while True:
         if camera:
