@@ -27,7 +27,7 @@ if __name__ == '__main__':
     debug = True
     
     # Use a camera?
-    camera = True
+    camera = False
     
     cameraNumber = 0
     
@@ -65,8 +65,8 @@ if __name__ == '__main__':
         # Returns the image and the ammount of squares found
         img, num = processor.find_squares(img, debug = debug)
         
-        if i % 100 == 0:
-            print num
+        #if i % 100 == 0:
+            #print num
         
         # Show the processed image
         cv2.imshow('Processed', img)

@@ -16,6 +16,7 @@
 
 import numpy as np
 import cv2
+import math
 
 class Processor:
     """
@@ -31,6 +32,8 @@ class Processor:
     tmax3 = 255
     
     scale = 0.02
+    
+    distanceToTarget = 0
     
     lastPoints = []
     
@@ -52,7 +55,7 @@ class Processor:
         # Create Thresh values from slider
         THRESH_MIN = np.array([self.tmin1, self.tmin2, self.tmin3],np.uint8)
         THRESH_MAX = np.array([self.tmax1, self.tmax2, self.tmax3],np.uint8)
-    
+
         # Convert image to hsv
         hsv_img = cv2.cvtColor(img,cv2.COLOR_BGR2HSV)
     
@@ -72,43 +75,78 @@ class Processor:
         contours, hierarchy = cv2.findContours(thresh, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
     
         # Check if the contours have 4 sides and store it if it does
-        for contour in contours:            
-            rect = cv2.minAreaRect(contour)
-            
-            # Find four vertices of rectangle from above rect
-            box = cv2.cv.BoxPoints(rect)
-            
-            # Round the values and make it integers
-            box = np.int0(np.around(box))
-            
-            # The box array looks like this
-            # [
-            #     point top right,
-            #     point top left,
-            #     point bottom left,
-            #     point bottom right
-            # ]
-            
-            #calculate the width / length
-            dimentionThreshX = (box[0][0] - box[1][0])
-            dimentionThreshY = (box[1][1] - box[3][1])
-            
-            if dimentionThreshY > 0:
-				dimentionThresh = dimentionThreshX / dimentionThreshY
-            else:
-                dimentionThresh = 0
-
-			# in a perfect world our box would always be 4.5 when
-			# dividing the width by length. So in this imperfect world
-			# we check if it is within a resonalble range
-            if dimentionThresh in range(4, 5):
-                squares.append(box)
+        for contour in contours:
+            # working on other way
+            if False:
+                cnt_len = cv2.arcLength(contour, True)
+                contour = cv2.approxPolyDP(contour, 0.002*cnt_len, True)
+                
+                if cv2.contourArea(contour) > 1000:
+                    hull = cv2.convexHull(contour)
+                    hull = cv2.approxPolyDP(hull, 0.04*cv2.arcLength(hull, True), True)
+                    
+                    if len(hull) == 4:
+                        cv2.drawContours(img, [hull], 0, (0,255,0), 2)
+                    
+            if True:
+                rect = cv2.minAreaRect(contour)
+                
+                # Find four vertices of rectangle from above rect
+                box = cv2.cv.BoxPoints(rect)
+                
+                # Round the values and make it integers
+                box = np.int0(np.around(box))
+                
+                # The box array looks like this
+                # [
+                #     point top right,
+                #     point top left,
+                #     point bottom left,
+                #     point bottom right
+                # ]
+                
+                #calculate the width / length
+                dimentionThreshX = self.lineLength(box[0], box[1])
+                dimentionThreshY = self.lineLength(box[1], box[2])
+                
+                #dimentionThreshX = box[0][0] - box[1][0]
+                #dimentionThreshY = box[1][1] - box[2][1]
+                
+                if dimentionThreshY > 0:
+                    dimentionThresh = dimentionThreshX / dimentionThreshY
+                else:
+                    dimentionThresh = 0
+                    
+                #if box[0][0] > 200:
+                    #print dimentionThresh
+                    #print dimentionThreshX, ", ", dimentionThreshY
+                    #squares.append(box)
+                    
+                #print dimentionThresh
+                
+                # in a perfect world our box would always be 3.1 when
+                # dividing the width by length. So in this imperfect world
+                # we check if it is within a resonalble range ie +- .5
+                if dimentionThresh > 2.6 and dimentionThresh < 3.5:
+                    print dimentionThresh
+                    print box
+                    squares.append(box)
+        
+        self.lastPoints = squares
             
         # Draw all the squares
         cv2.polylines(img, squares, True, (0, 255, 0), 2)
     
         # Return the image we drew on and the number of squares found
         return img, len(squares)
+    
+    def calculateDistance(self, rect):
+        print "test"
+        
+    def lineLength(self, point1, point2):
+        ans = pow(point2[0] - point1[0], 2) + pow(point2[1] - point1[1], 2)
+        ans = math.sqrt(ans);
+        return ans
         
     def min1(self, x):
         self.tmin1 = x

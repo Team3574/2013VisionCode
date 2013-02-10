@@ -1,0 +1,14 @@
+distance to object (mm) = 
+focal length (mm) * real height of the object (mm) * image height (pixels)
+---------------------------------------------------------------------------
+               object height (pixels) * sensor height (mm)              
+
+
+Line length = sqrt(sqrt(x2 - x1) + sqrt(y2 - y1))
+
+
+2.69045695995
+[[444 256]
+ [280 231]
+ [289 170]
+ [454 195]]
