@@ -42,6 +42,22 @@ class Rectangle:
 		
 	def setCenterPoint(self, centerPoint):
 		self.centerPoint = centerPoint
+		
+	@staticmethod
+	def isTarget(width1, width2, height1, height2):
+		if width1 < 20 or width2 < 20:
+			return False
+		
+		width = (width1 + width2) / 2
+		height = (height1 + height2) / 2
+		ratio = height / width
+		print "Ratio: " , ratio
+		
+		# 3.1 is our ratio we want
+		
+		if abs(width1 - width2) < 6 and abs(height2-height1) < 6:
+			return True
+		return False
 
 if __name__ == '__main__':
 	testRect = Rectangle(100, 75, Point(6, 60))

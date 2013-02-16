@@ -24,21 +24,15 @@ class Processor:
     Processor: Used to process images
     """
     
+    t = 0;
+    
     tmin1 = 0
     tmin2 = 0
-    tmin3 = 255
+    tmin3 = 235
     
     tmax1 = 255
     tmax2 = 255
     tmax3 = 255
-    
-    scale = 0.02
-    
-    # TODO: Calculate this
-    distanceToTarget = 0
-    
-    # The centerpoints ordered from left to right
-    centerpoints = []
     
     def find_squares(self, img, debug = True, time = 0):
         """
@@ -65,12 +59,15 @@ class Processor:
         # Do in range
         thresh = cv2.inRange(hsv_img, THRESH_MIN, THRESH_MAX)
         
+        # Do canny
+        thresh = cv2.Canny(thresh, 2, 4)
+        
         st = cv2.getStructuringElement(getattr(cv2, "MORPH_RECT"), (6, 6))
         thresh = cv2.morphologyEx(thresh, getattr(cv2, "MORPH_CLOSE"), st, iterations=3)
     
         # Show the threshed image
         if debug:
-            cv2.imshow('thresh', thresh);
+            cv2.imshow('thresh' + str(self.t), thresh);
     
         # Storage for squares
         squares = []
@@ -78,84 +75,32 @@ class Processor:
         # Get all contours
         contours, hierarchy = cv2.findContours(thresh, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
     
+        hierarchy = hierarchy[0]
+    
         self.centerpoints = []
     
         # Check if the contours have 4 sides and store it if it does
-        for contour in contours:
+        for component in zip(contours, hierarchy):
             # New way
-            if False:
-                if cv2.contourArea(contour) > 1000:
-                
-                    hull = cv2.convexHull(contour)
-                    hull = cv2.approxPolyDP(hull, 0.04*cv2.arcLength(hull, True), True)
-                    
-                    if len(hull) == 4:
-                        width1 = self.lineLength(hull[0][0], hull[1][0])
-                        width2 = self.lineLength(hull[3][0], hull[2][0])
-                        
-                        height1 = self.lineLength(hull[2][0], hull[1][0])
-                        height2 = self.lineLength(hull[3][0], hull[0][0])
-                        
-                        if Rectangle.isTarget(width1, width2, height1, height2):
-                            if time == 0:
-                                cv2.drawContours(img, [hull], 0, (255,0,0), thickness = 2)
-                                center = self.calculateCenterPoint(hull)
-                                cv2.circle(img, center, 4, (255,0,0), 1)
-                            """else:
-                                center = self.calculateCenterPoint(hull)
-                                self.centerpoints.append(center)
-                                cv2.circle(img, center, 4, (0,255,0), 1)
-                                cv2.drawContours(img, [hull], 0, (0,255,0), thickness = 2)"""
-                self.organizePoints()
-            # "Working" way
-            if True:
-                if cv2.contourArea(contour) > 1000:
-                    rect = cv2.minAreaRect(contour)
-                    
-                    # Find four vertices of rectangle from above rect
-                    box = cv2.cv.BoxPoints(rect)
-                    
-                    # Round the values and make it integers
-                    box = np.int0(np.around(box))
-                    
-                    # The box array looks like this
-                    # [
-                    #     point top right,
-                    #     point top left,
-                    #     point bottom left,
-                    #     point bottom right
-                    # ]
-                    
-                    #calculate the width / length
-                    dimentionThreshX = self.lineLength(box[0], box[1])
-                    dimentionThreshY = self.lineLength(box[1], box[2])
-                    
-                    if dimentionThreshY > 0:
-                        dimentionThresh = dimentionThreshX / dimentionThreshY
-                    else:
-                        dimentionThresh = 0
-                    
-                    width1 = self.lineLength(box[0], box[1])
-                    width2 = self.lineLength(box[3], box[2])
-                    
-                    height1 = self.lineLength(box[2], box[1])
-                    height2 = self.lineLength(box[3], box[0])
-                    
-                    if Rectangle.isTarget(width1, width2, height1, height2):
-                        print dimentionThresh
-                        print box
-                        squares.append(box)
+            contour = component[0]
+            currHierarchy = component[1]
+            
+            curve = cv2.convexHull(contour)
+            approx = cv2.approxPolyDP(contour, cv2.arcLength(contour, True) * 0.03, True)
+            
+            if len(approx) == 4:
+                if currHierarchy[3] < 0:
+                    center = self.calculateCenterPoint(approx)
+                    cv2.circle(img, center, 4, (0,255,0), 3)
+                    squares.append(approx)
         
         self.lastPoints = squares
             
         # Draw all the squares
-        cv2.polylines(img, squares, True, (0, 255, 0), 2)
+        cv2.polylines(img, squares, True, (0, 255, 0), 4)
     
-        # Return the image we drew on and the number of squares found
-        if time == 0:
-            return self.find_squares(img, time = 1)
-        else:
-            return img, len(squares)
+        self.t = self.t + 1
+        return img, len(squares)
     
     def calculateDistance(self, rect):
         print "test"

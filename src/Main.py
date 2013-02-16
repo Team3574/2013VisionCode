@@ -15,7 +15,7 @@
 
 
 import cv2
-from Processor import Processor
+from Processor2 import Processor
 from glob import glob
  
 # The if __name__ determines the scope in which the
@@ -30,7 +30,7 @@ if __name__ == '__main__':
     # Use a camera?
     camera = False
     
-    cameraNumber = 0
+    cameraNumber = 1
     
     # Create a Processor object
     processor = Processor()
@@ -62,8 +62,6 @@ if __name__ == '__main__':
             # Show the processed image
             cv2.imshow('Processed', img)
             
-            print processor.centerpoints
-            
             # Wait for a key press
             if cv2.waitKey(30) >= 10:
                 #Exit the wile loop
@@ -75,7 +73,6 @@ if __name__ == '__main__':
             img, num = processor.find_squares(img, debug = debug)
             cv2.namedWindow('processed' + str(image))
             cv2.imshow('processed' + str(image), img)
-            print processor.centerpoints
         cv2.waitKey(0)
             
     cv2.destroyAllWindows()
