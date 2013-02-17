@@ -29,8 +29,20 @@ class Point:
 	def getY(self):
 		return self.y
 		
+	def getTurple(self):
+		return (self.x, self.y)
+		
 	def setX(self, x):
 		self.x = x
 		
 	def setY(self, y):
 		self.y = y
+		
+	def __repr__(self):
+		return "(" + str(self.x) + "," + str(self.y) + ")"
+		
+	def __str__(self):
+		return "(" + str(self.x) + "," + str(self.y) + ")"
+		
+	def __cmp__(self, other):
+		return cmp(self.x, other.x)

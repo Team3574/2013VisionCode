@@ -15,7 +15,8 @@
 
 
 import cv2
-from Processor2 import Processor
+from Processor2 import TargetFinder
+from Processor2 import DiscFinder
 from glob import glob
  
 # The if __name__ determines the scope in which the
@@ -30,37 +31,49 @@ if __name__ == '__main__':
     # Use a camera?
     camera = False
     
-    cameraNumber = 1
+    # for shooting target
+    cameraNumber1 = 2
+    # fro frisbees
+    cameraNumber2 = 1
     
-    # Create a Processor object
-    processor = Processor()
+    # Create a Processor objects
+    targetFinder = TargetFinder()
+    discFinder = DiscFinder()
     
     if debug:
         cv2.namedWindow("bars")
 
-        # Add trackbars to the window to adjust the min hsv values
-        cv2.createTrackbar("H-Min", "bars", processor.tmin1, 255, processor.min1)
-        cv2.createTrackbar("S-Min", "bars", processor.tmin2, 255, processor.min2)
-        cv2.createTrackbar("V-Min", "bars", processor.tmin3, 255, processor.min3)
+        # Add trackbars to the window to adjust the min hsv values[
+        cv2.createTrackbar("H-Min", "bars", discFinder.tmin1, 255, discFinder.min1)
+        cv2.createTrackbar("S-Min", "bars", discFinder.tmin2, 255, discFinder.min2)
+        cv2.createTrackbar("V-Min", "bars", discFinder.tmin3, 255, discFinder.min3)
     
         # Add trackbars to the window to adjust the max hsv values
-        cv2.createTrackbar("H-Max", "bars", processor.tmax1, 255, processor.max1)
-        cv2.createTrackbar("S-Max", "bars", processor.tmax2, 255, processor.max2)
-        cv2.createTrackbar("V-Max", "bars", processor.tmax3, 255, processor.max3)
+        cv2.createTrackbar("H-Max", "bars", discFinder.tmax1, 255, discFinder.max1)
+        cv2.createTrackbar("S-Max", "bars", discFinder.tmax2, 255, discFinder.max2)
+        cv2.createTrackbar("V-Max", "bars", discFinder.tmax3, 255, discFinder.max3)
 
     if camera:
         # Creeate window
         cv2.namedWindow("Processed")
+        cv2.namedWindow("Processed2")
         # Create Video Capture
-        cap = cv2.VideoCapture(cameraNumber)
+        cap = cv2.VideoCapture(cameraNumber1)
+        cap2 = cv2.VideoCapture(cameraNumber2)
+        
         while True:
             # Get the current camera image
             ret, img = cap.read()
+            ret2, img2 = cap2.read()
+            
             # Returns the image and the ammount of squares found
-            img, num = processor.find_squares(img, debug = debug)
+            img, num = targetFinder.find_targets(img, debug = debug)
+            
+            img2, num = discFinder.find_discs(img2, debug = debug)
                     
             # Show the processed image
             cv2.imshow('Processed', img)
+            cv2.imshow('Processed2', img2)
             
             # Wait for a key press
             if cv2.waitKey(30) >= 10:
@@ -68,10 +81,23 @@ if __name__ == '__main__':
                 break
         
     else:
-        for image in glob('*.jpg'):
+        for image in glob('targets/*.jpg'):
             img = cv2.imread(image)
-            img, num = processor.find_squares(img, debug = debug)
+            img, num = targetFinder.find_targets(img, debug = debug)
             cv2.namedWindow('processed' + str(image))
+            targetFinder.organizePoints()
+            print image
+            print targetFinder.centerPoints
+            print "\n"
+            cv2.imshow('processed' + str(image), img)
+            
+        for image in glob('discs/*.jpg'):
+            img = cv2.imread(image)
+            img, num = discFinder.find_discs(img, debug = debug)
+            cv2.namedWindow('processed' + str(image))
+            print image
+            print discFinder.centerPoints
+            print "\n"
             cv2.imshow('processed' + str(image), img)
         cv2.waitKey(0)
             
