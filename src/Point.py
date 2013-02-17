@@ -29,7 +29,7 @@ class Point:
 	def getY(self):
 		return self.y
 		
-	def getTurple(self):
+	def getTuple(self):
 		return (self.x, self.y)
 		
 	def setX(self, x):

@@ -107,7 +107,7 @@ class TargetFinder:
                             squares.append(approx)
                             
                             if debug:
-                                cv2.circle(img, center.getTurple(), 4, (0,255,0), 3)
+                                cv2.circle(img, center.getTuple(), 4, (0,255,0), 3)
         
         self.centerPoints.sort()
             
@@ -216,8 +216,8 @@ class DiscFinder:
                 centerPoint = Point(circle[0][0], circle[0][1])
                 self.centerPoints.append(centerPoint)
                 radius = circle[0][2]
-                cv2.circle(img, centerPoint.getTurple(), 3, (0,255,0), 3)
-                cv2.circle(img, centerPoint.getTurple(), radius, (0,255,0), 3)
+                cv2.circle(img, centerPoint.getTuple(), 3, (0,255,0), 3)
+                cv2.circle(img, centerPoint.getTuple(), radius, (0,255,0), 3)
         
         return img, 0
     
