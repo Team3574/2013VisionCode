@@ -29,10 +29,10 @@ if __name__ == '__main__':
     debug = True
     
     # Use a camera?
-    camera = False
+    camera = True
     
     # for shooting target
-    cameraNumber1 = 2
+    cameraNumber1 = 0
     # fro frisbees
     cameraNumber2 = 1
     

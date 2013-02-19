@@ -42,7 +42,7 @@ class TargetFinder:
     
     def __init__(self):
         for i in range(4):
-            self.kalmanFilters.append(cv2.KalmanFilter(dynamParams=2, measureParams=2, controlParams=2))
+            self.kalmanFilters.append(cv2.KalmanFilter(dynamParams=2, measureParams=2))
     
     def find_targets(self, img, debug = True):
         """
