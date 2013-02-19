@@ -36,7 +36,13 @@ class TargetFinder:
     
     centerPoints = []
     
+    kalmanFilters = []
+    
     imgSize = 0
+    
+    def __init__(self):
+        for i in range(4):
+            self.kalmanFilters.append(cv2.KalmanFilter(dynamParams=2, measureParams=2, controlParams=2))
     
     def find_targets(self, img, debug = True):
         """
@@ -70,6 +76,7 @@ class TargetFinder:
         # Do canny
         thresh = cv2.Canny(thresh, 2, 4)
         
+        # Try to close targets
         st = cv2.getStructuringElement(getattr(cv2, "MORPH_RECT"), (2, 2))
         thresh = cv2.morphologyEx(thresh, getattr(cv2, "MORPH_CLOSE"), st, iterations=2)
     
@@ -86,42 +93,48 @@ class TargetFinder:
     
         del self.centerPoints[:]
         self.centerpoints = []
+        tmpCenterPoints = []
     
+        # IF we find anything
         if hierarchy != None:
+            # Get rid of unnessary values
             hierarchy = hierarchy[0]
     
             # Check if the contours have 4 sides and store it if it does
             for component in zip(contours, hierarchy):
-                # New way
                 contour = component[0]
                 currHierarchy = component[1]
                 
+                # Process only good size object
                 if cv2.contourArea(contour) > 1000:
+                    # Aproximate shape
                     curve = cv2.convexHull(contour)
                     approx = cv2.approxPolyDP(contour, cv2.arcLength(contour, True) * 0.03, True)
                     
+                    # If the shape has four corners
                     if len(approx) == 4:
+                        # If curent approximation has another one inside of it
                         if currHierarchy[3] < 0:
                             center = self.calculateCenterPoint(approx)
                             self.centerPoints.append(center)
                             squares.append(approx)
                             
                             if debug:
+                                # Draw the center point
                                 cv2.circle(img, center.getTuple(), 4, (0,255,0), 3)
         
+        # Sorting the center points
         self.centerPoints.sort()
-            
-        # Draw all the squares
-        cv2.polylines(img, squares, True, (0, 255, 0), 4)
+        
+        if debug:
+            # Draw all the squares
+            cv2.polylines(img, squares, True, (0, 255, 0), 4)
     
         return img, len(squares)
     
     def calculateDistance(self, rect):
         print "test"
-        
-    def calculateCenterOffset(self):
-        print "test"
-        #return Point(self.imgSize[1]
+
         
     def lineLength(self, point1, point2):
         ans = pow(point2[0] - point1[0], 2) + pow(point2[1] - point1[1], 2)
@@ -210,14 +223,26 @@ class DiscFinder:
         # Storage for circles
         circles = []
         
+        # Look for circles
         circles = cv2.HoughCircles(thresh, cv.CV_HOUGH_GRADIENT, 3, 311)
+        
+        # If any circles were found
         if circles != None:
+            # Loop through all circles
             for circle in circles:
+                # Get the center point of the circle
                 centerPoint = Point(circle[0][0], circle[0][1])
+                
+                # Store center point
                 self.centerPoints.append(centerPoint)
+                
+                # Get the radius
                 radius = circle[0][2]
-                cv2.circle(img, centerPoint.getTuple(), 3, (0,255,0), 3)
-                cv2.circle(img, centerPoint.getTuple(), radius, (0,255,0), 3)
+                
+                if debug:
+                    # Draw circle and center point
+                    cv2.circle(img, centerPoint.getTuple(), 3, (0,255,0), 3)
+                    cv2.circle(img, centerPoint.getTuple(), radius, (0,255,0), 3)
         
         return img, 0
     
