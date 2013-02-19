@@ -21,6 +21,7 @@ import cv
 import math
 from Rectangle import Rectangle
 from Point import Point
+#import nt_client
 
 class TargetFinder:
     """
@@ -132,6 +133,12 @@ class TargetFinder:
             cv2.polylines(img, squares, True, (0, 255, 0), 4)
     
         return img, len(squares)
+        
+    def classifyTargets(self):
+        """
+        Returns both the targets and the number of targets
+        """
+        return (), 0
     
     def calculateDistance(self, rect):
         print "test"
@@ -187,6 +194,9 @@ class DiscFinder:
     
     centerPoints = []
     
+    # Should work
+    # client = nt_client.INSTANCE
+    
     def find_discs(self, img, debug = True):
         
         del self.centerPoints[:]
@@ -232,10 +242,16 @@ class DiscFinder:
         # Look for Contours
         contours, higharchy = cv2.findContours(thresh, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
         
+        # Storage for discs and blobs of discs
+        # Circles are stored as a tuple containing the circle data
+        # an it's calculated target point
+        discs = []
+        discBlobs = []
+        
         # Loop through contours
         for contour in contours:
             approx = cv2.approxPolyDP(contour, 3, True)
-            if len(approx) >= 5:
+            if len(approx) >= 5 and cv2.contourArea(approx) > 3000:
                 circle = cv2.fitEllipse(approx)
                 
                 x, y, w, h = cv2.boundingRect(approx)
@@ -247,20 +263,21 @@ class DiscFinder:
                     relative = float(h)/w
                     
                 
-                print relative
+                # print relative
                 if relative > .5 and relative < 1.7:
                     bottom = (x + w/2, y + h)
-                           
-                    if debug:
-                        cv2.ellipse(img, circle, (0,255,0))
-                        cv2.circle(img, bottom, 4, (0,255,0), 3)
+                    discs.append((circle, bottom))
+                    
                 elif relative >= 1.7  and relative < 3:
                     bottom = (x + w/2, y + h)
-                           
-                    if debug:
-                        cv2.ellipse(img, circle, (255,0,0))
-                        cv2.circle(img, bottom, 4, (255,0,0), 3)
-                    
+                    discsBlobs.append((circle, bottom))       
+        if debug:
+            for disc in discs:
+                cv2.ellipse(img, disc[0], (0,255,0))
+                cv2.circle(img, disc[1], 4, (0,255,0), 3)
+            for disc in discBlobs:
+                cv2.ellipse(img, disc[0], (255,0,0))
+                cv2.circle(img, disc[1], 4, (255,0,0), 3)
             
         return img, 0
     

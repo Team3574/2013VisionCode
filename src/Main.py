@@ -29,7 +29,7 @@ if __name__ == '__main__':
     debug = True
     
     # Use a camera?
-    camera = True
+    camera = False
     
     # for shooting target
     cameraNumber1 = 0

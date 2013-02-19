@@ -30,7 +30,7 @@ class EntryValue:
     def __repr__(self):
         return str((self.name, self.entryId, self.seqId, self.value))
 
-class NetworkTableClient(object):
+class NetworkTableClient(object):    
     def __init__(self, team):
         teamPad = team.rjust(5, '0')
         c1 = int(teamPad[0:3])
@@ -205,6 +205,7 @@ class NetworkTableClient(object):
             # Give some time to make sure we get all the message from the server
             time.sleep(0.05)
 
+INSTANCE = NetworkTableClient("3574")
 
 if __name__ == "__main__":
     import sys
