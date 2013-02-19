@@ -193,7 +193,7 @@ class DiscFinder:
         self.centerPoints = []
         
         # Blur the image
-        img = cv2.GaussianBlur(img, (5, 5), 0)
+        img = cv2.GaussianBlur(img, (5,5), 0)
     
         # Create Thresh values from slider
         THRESH_MIN = np.array([self.tmin1, self.tmin2, self.tmin3],np.uint8)
@@ -205,7 +205,11 @@ class DiscFinder:
         # Do in range
         thresh = cv2.inRange(hsv_img, THRESH_MIN, THRESH_MAX)
         
-        thresh = cv2.GaussianBlur(thresh, (165,165), 0)
+        thresh = cv2.GaussianBlur(thresh, (7,7), 0)
+        
+        # Try to close targets
+        st = cv2.getStructuringElement(getattr(cv2, "MORPH_RECT"), (10, 10))
+        thresh = cv2.morphologyEx(thresh, getattr(cv2, "MORPH_CLOSE"), st, iterations=2)
         
         # Thresh again
         THRESH_MIN = np.array([self.thmin2],np.uint8)
@@ -213,42 +217,51 @@ class DiscFinder:
         
         # Thresh again
         thresh = cv2.inRange(thresh, THRESH_MIN, THRESH_MAX)
+        cv2.imshow('frisbeethresh', thresh)
         
         # Do canny
         thresh = cv2.Canny(thresh, 1, 1)
         
         if debug:
-            cv2.imshow('thresh2', thresh);
+            cv2.imshow('canny', thresh);
         
         
         # Storage for circles
         circles = []
         
-        # Look for circles
-        #circles = cv2.HoughCircles(thresh, cv.CV_HOUGH_GRADIENT, 3, 311)
-        
+        # Look for Contours
         contours, higharchy = cv2.findContours(thresh, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
         
-        for contour in contours:            
+        # Loop through contours
+        for contour in contours:
             approx = cv2.approxPolyDP(contour, 3, True)
             if len(approx) >= 5:
-                circles.append(cv2.fitEllipse(approx))
-        
-        # If any circles were found
-        if circles != None:
-            # Loop through all circles
-            for circle in circles:
-                (center, size, angle) = circle
-                if debug:
-                    print "DISC", circle
-                    # Draw circle and center point
-                    cv2.ellipse(img, circle, (0, 255, 0))
-                    subtractFromCenter = tuple(map(operator.div, center, (2,2)))
-                    bottom = tuple(map(operator.add, center, (0, subtractFromCenter[1])))
-                    bottom = tuple(map(int, bottom))
-                    cv2.circle(img, bottom, 4, (0,255,0), 3)
-                    print "Bottom", bottom
-        
+                circle = cv2.fitEllipse(approx)
+                
+                x, y, w, h = cv2.boundingRect(approx)
+
+                relative = 0
+                if w > h:
+                    relative = float(w)/h
+                else:
+                    relative = float(h)/w
+                    
+                
+                print relative
+                if relative > .5 and relative < 1.7:
+                    bottom = (x + w/2, y + h)
+                           
+                    if debug:
+                        cv2.ellipse(img, circle, (0,255,0))
+                        cv2.circle(img, bottom, 4, (0,255,0), 3)
+                elif relative >= 1.7  and relative < 3:
+                    bottom = (x + w/2, y + h)
+                           
+                    if debug:
+                        cv2.ellipse(img, circle, (255,0,0))
+                        cv2.circle(img, bottom, 4, (255,0,0), 3)
+                    
+            
         return img, 0
     
     
