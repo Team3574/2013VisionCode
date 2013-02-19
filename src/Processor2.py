@@ -14,6 +14,7 @@
 # along with the project High Tekerz 2013 Vision Code.  If not, see <http://www.gnu.org/licenses/>.
 
 
+import operator
 import numpy as np
 import cv2
 import cv
@@ -224,25 +225,29 @@ class DiscFinder:
         circles = []
         
         # Look for circles
-        circles = cv2.HoughCircles(thresh, cv.CV_HOUGH_GRADIENT, 3, 311)
+        #circles = cv2.HoughCircles(thresh, cv.CV_HOUGH_GRADIENT, 3, 311)
+        
+        contours, higharchy = cv2.findContours(thresh, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+        
+        for contour in contours:            
+            approx = cv2.approxPolyDP(contour, 3, True)
+            if len(approx) >= 5:
+                circles.append(cv2.fitEllipse(approx))
         
         # If any circles were found
         if circles != None:
             # Loop through all circles
             for circle in circles:
-                # Get the center point of the circle
-                centerPoint = Point(circle[0][0], circle[0][1])
-                
-                # Store center point
-                self.centerPoints.append(centerPoint)
-                
-                # Get the radius
-                radius = circle[0][2]
-                
+                (center, size, angle) = circle
                 if debug:
+                    print "DISC", circle
                     # Draw circle and center point
-                    cv2.circle(img, centerPoint.getTuple(), 3, (0,255,0), 3)
-                    cv2.circle(img, centerPoint.getTuple(), radius, (0,255,0), 3)
+                    cv2.ellipse(img, circle, (0, 255, 0))
+                    subtractFromCenter = tuple(map(operator.div, center, (2,2)))
+                    bottom = tuple(map(operator.add, center, (0, subtractFromCenter[1])))
+                    bottom = tuple(map(int, bottom))
+                    cv2.circle(img, bottom, 4, (0,255,0), 3)
+                    print "Bottom", bottom
         
         return img, 0
     
