@@ -29,12 +29,12 @@ if __name__ == '__main__':
     debug = True
     
     # Use a camera?
-    camera = False
+    camera = True
     
     # for shooting target
-    cameraNumber1 = 0
+    cameraNumber1 = 1
     # fro frisbees
-    cameraNumber2 = 1
+    cameraNumber2 = 0
     
     # Create a Processor objects
     targetFinder = TargetFinder()
@@ -96,7 +96,6 @@ if __name__ == '__main__':
             img, num = discFinder.find_discs(img, debug = debug)
             cv2.namedWindow('processed' + str(image))
             print image
-            print discFinder.centerPoints
             print "\n"
             cv2.imshow('processed' + str(image), img)
         cv2.waitKey(0)

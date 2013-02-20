@@ -21,7 +21,8 @@ import cv
 import math
 from Rectangle import Rectangle
 from Point import Point
-#import nt_client
+import pprint
+import nt_client
 
 class TargetFinder:
     """
@@ -41,6 +42,8 @@ class TargetFinder:
     kalmanFilters = []
     
     imgSize = 0
+    
+    client = nt_client.NetworkTableClient("3574")
     
     def __init__(self):
         for i in range(4):
@@ -118,6 +121,8 @@ class TargetFinder:
                         # If curent approximation has another one inside of it
                         if currHierarchy[3] < 0:
                             center = self.calculateCenterPoint(approx)
+                            
+                            self.client.setValue("Vision/TargetTest", center.x)
                             self.centerPoints.append(center)
                             squares.append(approx)
                             
@@ -192,15 +197,18 @@ class DiscFinder:
     thmin2 = 55
     thmax2 = 255
     
-    centerPoints = []
+    # Storage for discs and blobs of discs
+    # Circles are stored as a tuple containing the circle data
+    # an it's calculated target point
+    discs = []
+    discBlobs = []
+    
+    pp = pprint.PrettyPrinter(indent=4)
     
     # Should work
-    # client = nt_client.INSTANCE
+    client = nt_client.NetworkTableClient("3574")
     
     def find_discs(self, img, debug = True):
-        
-        del self.centerPoints[:]
-        self.centerPoints = []
         
         # Blur the image
         img = cv2.GaussianBlur(img, (5,5), 0)
@@ -242,45 +250,55 @@ class DiscFinder:
         # Look for Contours
         contours, higharchy = cv2.findContours(thresh, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
         
-        # Storage for discs and blobs of discs
-        # Circles are stored as a tuple containing the circle data
-        # an it's calculated target point
-        discs = []
-        discBlobs = []
+        # TODO: Clear disc and discblobs
+        del self.discBlobs[:]
+        self.discBlobs = []
+        
+        del self.discs[:]
+        self.discs = []
         
         # Loop through contours
         for contour in contours:
             approx = cv2.approxPolyDP(contour, 3, True)
-            if len(approx) >= 5 and cv2.contourArea(approx) > 3000:
+            if len(approx) >= 5 and cv2.contourArea(approx) > 1000:
                 circle = cv2.fitEllipse(approx)
                 
                 x, y, w, h = cv2.boundingRect(approx)
 
-                relative = 0
+                ratioOfWidthToHeight = 0
                 if w > h:
-                    relative = float(w)/h
+                    ratioOfWidthToHeight = float(w)/h
                 else:
-                    relative = float(h)/w
+                    ratioOfWidthToHeight = float(h)/w
                     
                 
                 # print relative
-                if relative > .5 and relative < 1.7:
+                if ratioOfWidthToHeight > .5 and ratioOfWidthToHeight < 1.7:
                     bottom = (x + w/2, y + h)
-                    discs.append((circle, bottom))
+                    self.discs.append((circle, bottom))
                     
-                elif relative >= 1.7  and relative < 3:
+                elif ratioOfWidthToHeight >= 1.7  and ratioOfWidthToHeight < 3:
                     bottom = (x + w/2, y + h)
-                    discsBlobs.append((circle, bottom))       
+                    self.discBlobs.append((circle, bottom))
+        self.sortDiscs()
         if debug:
-            for disc in discs:
+            for disc in self.discs:
                 cv2.ellipse(img, disc[0], (0,255,0))
                 cv2.circle(img, disc[1], 4, (0,255,0), 3)
-            for disc in discBlobs:
+            for disc in self.discBlobs:
                 cv2.ellipse(img, disc[0], (255,0,0))
                 cv2.circle(img, disc[1], 4, (255,0,0), 3)
             
         return img, 0
     
+    def sortDiscs(self):
+        if len(self.discs) > 0:
+            tmpDiscs = []
+            self.discs = sorted(self.discs, key=lambda x: x[1][1])
+            self.client.setValue("/Vision/DiscLocation", float(self.discs[0][1][0]))
+            print "Value Sent", float(self.discs[0][1][0])
+            return
+        self.client.setValue("/Vision/DiscLocation", -10000.0)
     
     def min1(self, x):
         self.tmin1 = x

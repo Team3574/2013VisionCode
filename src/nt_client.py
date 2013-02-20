@@ -113,6 +113,8 @@ class NetworkTableClient(object):
             elif entry.getType() == str:
                 strLen = len(value)
                 updateMessage = "\x10" + struct.pack("!H" + str(len(name)) + "sBHHH" + str(strLen) + "s", len(name), name, 0x02, entry.entryId, entry.seqId, strLen, entry.value);
+            else:
+                updateMessage = ""
             
         else:
             entryId = self.entryIdByName[name]
@@ -204,8 +206,6 @@ class NetworkTableClient(object):
 
             # Give some time to make sure we get all the message from the server
             time.sleep(0.05)
-
-INSTANCE = NetworkTableClient("3574")
 
 if __name__ == "__main__":
     import sys
