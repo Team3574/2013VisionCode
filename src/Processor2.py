@@ -19,10 +19,13 @@ import numpy as np
 import cv2
 import cv
 import math
-from Rectangle import Rectangle
 from Point import Point
 import pprint
-import nt_client
+
+robot = False
+
+if robot:
+    import nt_client
 
 class TargetFinder:
     """
@@ -39,15 +42,10 @@ class TargetFinder:
     
     centerPoints = []
     
-    kalmanFilters = []
-    
     imgSize = 0
     
-    client = nt_client.NetworkTableClient("3574")
-    
-    def __init__(self):
-        for i in range(4):
-            self.kalmanFilters.append(cv2.KalmanFilter(dynamParams=2, measureParams=2))
+    if robot:
+        client = nt_client.NetworkTableClient("3574")
     
     def find_targets(self, img, debug = True):
         """
@@ -63,26 +61,25 @@ class TargetFinder:
 
         if self.imgSize == 0:
             self.imgSize = img.shape
-        
 
-        # Blur the image
-        img = cv2.GaussianBlur(img, (5, 5), 0)
+        # Convert image to hsv
+        hsv_img = cv2.cvtColor(img,cv2.COLOR_BGR2HSV)
     
         # Create Thresh values from slider
         THRESH_MIN = np.array([self.tmin1, self.tmin2, self.tmin3],np.uint8)
         THRESH_MAX = np.array([self.tmax1, self.tmax2, self.tmax3],np.uint8)
 
-        # Convert image to hsv
-        hsv_img = cv2.cvtColor(img,cv2.COLOR_BGR2HSV)
-    
         # Do in range
         thresh = cv2.inRange(hsv_img, THRESH_MIN, THRESH_MAX)
         
+        # Blur the image
+        thresh = cv2.GaussianBlur(thresh, (5, 5), 0)
+
         # Do canny
         thresh = cv2.Canny(thresh, 2, 4)
         
         # Try to close targets
-        st = cv2.getStructuringElement(getattr(cv2, "MORPH_RECT"), (2, 2))
+        st = cv2.getStructuringElement(getattr(cv2, "MORPH_RECT"), (4, 4))
         thresh = cv2.morphologyEx(thresh, getattr(cv2, "MORPH_CLOSE"), st, iterations=2)
     
         # Show the threshed image
@@ -122,31 +119,115 @@ class TargetFinder:
                         if currHierarchy[3] < 0:
                             center = self.calculateCenterPoint(approx)
                             
-                            self.client.setValue("Vision/TargetTest", center.x)
+                            if robot:
+                                self.client.setValue("Vision/TargetTest", center.x)
                             self.centerPoints.append(center)
                             squares.append(approx)
                             
                             if debug:
                                 # Draw the center point
                                 cv2.circle(img, center.getTuple(), 4, (0,255,0), 3)
-        
+
         # Sorting the center points
-        self.centerPoints.sort()
-        
+        #self.centerPoints, num = self.classifyTargets()
+        self.centerPoints = self.sortLeftToRight(self.centerPoints)
+
         if debug:
             # Draw all the squares
             cv2.polylines(img, squares, True, (0, 255, 0), 4)
+            i = 1
+            for center in self.centerPoints:
+                cv2.putText(img, str(i), center.getTuple(), cv2.FONT_HERSHEY_SIMPLEX, 1, (255,0,0))
+                i = i+1
     
         return img, len(squares)
         
     def classifyTargets(self):
-        """
-        Returns both the targets and the number of targets
-        """
-        return (), 0
+        classified = self.centerPoints
+        numberOfTargets = 0
+
+        # Handle more than 4 found points
+        if len(classified) > 4:
+            topIndex = self.findTopTargetPoint(classified)
+            
+            # We have extras on the right
+            if (topIndex) < 1:
+                pass
+            # We have extras on the left
+            elif topIndex > 1:
+                pass
+
+        # Handle 4 points
+        elif len(classified) == 4:
+            numberOfTargets = 4
+
+            bottomIndex = self.findBottomTargetPoint(classified)
+            print classified, bottomIndex, "Bottom"
+
+            # Move bottom to the right
+            if (bottomIndex != 3):
+                classified.append(classified.pop(bottomIndex))
+
+            print classified, "Bottom Moved"
+
+            topIndex = self.findTopTargetPoint(classified)
+
+            # Move top to index 1
+            if (topIndex  != 1):
+                print classified , topIndex, "Top"
+                classified[1], classified[topIndex] = classified[topIndex], classified[1]
+                print classified, "Top Moved"
+
+            # If the middles are wrong switch them
+            if self.centerPoints[0].x > self.centerPoints[2].x:
+                self.centerPoints[0], self.centerPoints[2] = self.centerPoints[2], self.centerPoints[0]
+            print classified
+
+        #classify 3 targets
+        elif len(classified) == 3:
+
+            pass
+
+        return classified, numberOfTargets
+
+
+    def findTopTargetPoint(self, points):
+
+        top = Point(10000,10000)
+        position = None
+
+        i = 0
+        for point in points:
+            if (point.y < top.y):
+                top = point
+                position = i
+            i = i+1
+
+        if top.y == 10000:
+            return None
+        return position
+
+    def findBottomTargetPoint(self, points):
+
+        bottom = Point(0,0)
+        position = None
+
+        i = 0
+        for point in points:
+            if (point.y > bottom.y):
+                bottom = point
+                position = i
+            i = i+1
+
+        if bottom.y == 0:
+            return None
+        return position
     
     def calculateDistance(self, rect):
         print "test"
+
+    def sortLeftToRight(self, points):
+        return sorted(points, key=lambda point: point.x)
 
         
     def lineLength(self, point1, point2):
@@ -158,9 +239,6 @@ class TargetFinder:
         centerX = (rect[0][0][0] + rect[1][0][0] + rect[2][0][0] + rect[3][0][0]) / 4
         centerY = (rect[0][0][1] + rect[1][0][1] + rect[2][0][1] + rect[3][0][1]) / 4
         return Point(centerX, centerY)
-        
-    def organizePoints(self):
-        self.centerpoints.sort()
                 
         
     def min1(self, x):
@@ -206,7 +284,8 @@ class DiscFinder:
     pp = pprint.PrettyPrinter(indent=4)
     
     # Should work
-    client = nt_client.NetworkTableClient("3574")
+    if robot:
+        client = nt_client.NetworkTableClient("3574")
     
     def find_discs(self, img, debug = True):
         
@@ -295,10 +374,12 @@ class DiscFinder:
         if len(self.discs) > 0:
             tmpDiscs = []
             self.discs = sorted(self.discs, key=lambda x: x[1][1])
-            self.client.setValue("/Vision/DiscLocation", float(self.discs[0][1][0]))
+            if robot:
+                self.client.setValue("/Vision/DiscLocation", float(self.discs[0][1][0]))
             print "Value Sent", float(self.discs[0][1][0])
             return
-        self.client.setValue("/Vision/DiscLocation", -10000.0)
+        if robot:
+            self.client.setValue("/Vision/DiscLocation", -10000.0)
     
     def min1(self, x):
         self.tmin1 = x
