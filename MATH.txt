@@ -12,3 +12,26 @@ Line length = sqrt(sqrt(x2 - x1) + sqrt(y2 - y1))
  [280 231]
  [289 170]
  [454 195]]
+
+        #Working on images
+        # If we have 3 points
+        if len(points) == 10:
+            # The math to get line lengths
+            leftToCenterLength = self.lineLength(points[0], points[1])
+            middleToRightLength = self.lineLength(points[1], points[2])
+
+            # first thing is greater than the next (should be missing the left)
+            if points[0].y < points[1].y:
+                if int(leftToCenterLength / middleToRightLength) > 1:
+                    # Should be missing the top
+                    return {"mid-left":points[0],"top":None, "mid-right":points[1], "bottom":points[2]}
+                math = int((points[0].y / 10) - (points[1].y / 10))
+                print math, "Division"
+                if  math == 0:
+                    return {"mid-left":points[0],"top":None, "mid-right":points[1], "bottom":points[2]}
+                return {"mid-left":None,"top":points[0], "mid-right":points[1], "bottom":points[2]}
+
+            elif int(middleToRightLength / leftToCenterLength) > 1:
+                return {"mid-left":points[0],"top":points[1], "mid-right":None, "bottom":points[2]}
+            else:
+                return {"mid-left":points[0],"top":points[1], "mid-right":points[2], "bottom":None}

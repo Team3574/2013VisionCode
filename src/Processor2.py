@@ -233,29 +233,39 @@ class TargetFinder:
 
         if len(points) == 4:
             return {"mid-left":points[0], "top":points[1], "mid-right":points[2], "bottom":points[3]}
-        
-        # If we have 3 points
+
+        # New way
         if len(points) == 3:
-            # So math to get line lengths
-            leftToCenterLength = self.lineLength(points[0], points[1])
-            middleToRightLength = self.lineLength(points[1], points[2])
+            angleOneToTwo = self.lineAngle(points[0], points[1])
+            angleTwoToThree = self.lineAngle(points[1], points[2])
+            
+            #print angleOneToTwo, "One to two | ", angleTwoToThree, "Two to three"
 
-            # first thing is greater than the next (should be missing the left)
-            if points[0].y < points[1].y:
-                if int(leftToCenterLength / middleToRightLength) > 1:
-                    # Should be missing the top
-                    return {"mid-left":points[0],"top":None, "mid-right":points[1], "bottom":points[2]}
-                math = int((points[0].y / 10) - (points[1].y / 10))
-                print math, "Division"
-                if  math == 0:
-                    return {"mid-left":points[0],"top":None, "mid-right":points[1], "bottom":points[2]}
-                return {"mid-left":None,"top":points[0], "mid-right":points[1], "bottom":points[2]}
+            ret = dict()
 
-            elif int(middleToRightLength / leftToCenterLength) > 1:
-                return {"mid-left":points[0],"top":points[1], "mid-right":None, "bottom":points[2]}
+            # If it is less than 0 we have a left and middle
+            if angleOneToTwo < 0:
+                ret["mid-left"] = points[0]
+                ret["top"] = points[1]
+
+                if angleTwoToThree > 20:
+                    ret["mid-right"] = None
+                    ret["bottom"] = points[2]
+                else:
+                    ret["mid-right"] = points[2]
+                    ret["bottom"] = None
+            elif int(angleOneToTwo) in range(0, 4):
+                ret["mid-left"] = points[0]
+                ret["top"] = None
+                ret["mid-right"] = points[1]
+                ret["bottom"] = points[2]
             else:
-                return {"mid-left":points[0],"top":points[1], "mid-right":points[2], "bottom":None}
+                ret["mid-left"] = None
+                ret["top"] = points[0]
+                ret["mid-right"] = points[1]
+                ret["bottom"] = points[2]
 
+            return ret
 
         dic = {}
         for i, point in enumerate(points):
@@ -267,6 +277,9 @@ class TargetFinder:
         ans = pow(point2.x - point1.x, 2) + pow(point2.y - point1.y, 2)
         ans = math.sqrt(ans);
         return ans
+
+    def lineAngle(self, point1, point2):
+        return math.atan2(point2.y - point1.y, point2.x - point2.y) * 180 / math.pi
 
     def calculateCenterPoint(self, rect):
         centerX = (rect[0][0][0] + rect[1][0][0] + rect[2][0][0] + rect[3][0][0]) / 4
