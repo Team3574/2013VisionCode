@@ -43,7 +43,7 @@ if __name__ == '__main__':
     if debug:
         cv2.namedWindow("bars")
 
-        # Add trackbars to the window to adjust the min hsv values[
+        # Add trackbars to the window to adjust the min hsv values
         cv2.createTrackbar("H-Min", "bars", discFinder.tmin1, 255, discFinder.min1)
         cv2.createTrackbar("S-Min", "bars", discFinder.tmin2, 255, discFinder.min2)
         cv2.createTrackbar("V-Min", "bars", discFinder.tmin3, 255, discFinder.min3)
@@ -81,22 +81,21 @@ if __name__ == '__main__':
                 break
         
     else:
-        for image in glob('targets/*.jpg'):
+        for image in glob('targets2/*.jpg'):
             img = cv2.imread(image)
             img, num = targetFinder.find_targets(img, debug = debug)
             cv2.namedWindow('processed' + str(image))
-            targetFinder.organizePoints()
-            print image
-            print targetFinder.centerPoints
-            print "\n"
+            #print image
+            #print targetFinder.centerPoints
+            #print "\n"
             cv2.imshow('processed' + str(image), img)
             
-        for image in glob('discs/*.jpg'):
+        for image in glob('discs2/*.jpg'):
             img = cv2.imread(image)
             img, num = discFinder.find_discs(img, debug = debug)
             cv2.namedWindow('processed' + str(image))
-            print image
-            print "\n"
+            #print image
+            #print "\n"
             cv2.imshow('processed' + str(image), img)
         cv2.waitKey(0)
             
