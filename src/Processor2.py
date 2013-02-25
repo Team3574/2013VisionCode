@@ -41,6 +41,7 @@ class TargetFinder:
     tmax3 = 255
     
     centerPoints = []
+    centerPointsDict = {}
     
     imgSize = 0
     
@@ -130,15 +131,16 @@ class TargetFinder:
 
         # Sorting the center points
         #self.centerPoints, num = self.classifyTargets()
-        self.centerPoints = self.sortLeftToRight(self.centerPoints)
+        self.centerPointsDict = self.sortTargets(self.centerPoints)
 
         if debug:
             # Draw all the squares
             cv2.polylines(img, squares, True, (0, 255, 0), 4)
-            i = 1
-            for center in self.centerPoints:
-                cv2.putText(img, str(i), center.getTuple(), cv2.FONT_HERSHEY_SIMPLEX, 1, (255,0,0))
-                i = i+1
+            
+            for i, center in self.centerPointsDict.iteritems():
+                if center is not None:
+                    cv2.putText(img, str(i), center.getTuple(), cv2.FONT_HERSHEY_SIMPLEX, 1, (255,0,0))
+                
     
         return img, len(squares)
         
@@ -226,12 +228,43 @@ class TargetFinder:
     def calculateDistance(self, rect):
         print "test"
 
-    def sortLeftToRight(self, points):
-        return sorted(points, key=lambda point: point.x)
+    def sortTargets(self, points):
+        points = sorted(points, key=lambda point: point.x)
+
+        if len(points) == 4:
+            return {"mid-left":points[0], "top":points[1], "mid-right":points[2], "bottom":points[3]}
+        
+        # If we have 3 points
+        if len(points) == 3:
+            # So math to get line lengths
+            leftToCenterLength = self.lineLength(points[0], points[1])
+            middleToRightLength = self.lineLength(points[1], points[2])
+
+            # first thing is greater than the next (should be missing the left)
+            if points[0].y < points[1].y:
+                if int(leftToCenterLength / middleToRightLength) > 1:
+                    # Should be missing the top
+                    return {"mid-left":points[0],"top":None, "mid-right":points[1], "bottom":points[2]}
+                math = int((points[0].y / 10) - (points[1].y / 10))
+                print math, "Division"
+                if  math == 0:
+                    return {"mid-left":points[0],"top":None, "mid-right":points[1], "bottom":points[2]}
+                return {"mid-left":None,"top":points[0], "mid-right":points[1], "bottom":points[2]}
+
+            elif int(middleToRightLength / leftToCenterLength) > 1:
+                return {"mid-left":points[0],"top":points[1], "mid-right":None, "bottom":points[2]}
+            else:
+                return {"mid-left":points[0],"top":points[1], "mid-right":points[2], "bottom":None}
+
+
+        dic = {}
+        for i, point in enumerate(points):
+            dic[i] = point
+        return dic
 
         
     def lineLength(self, point1, point2):
-        ans = pow(point2[0] - point1[0], 2) + pow(point2[1] - point1[1], 2)
+        ans = pow(point2.x - point1.x, 2) + pow(point2.y - point1.y, 2)
         ans = math.sqrt(ans);
         return ans
 
