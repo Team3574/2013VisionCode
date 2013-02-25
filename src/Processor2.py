@@ -14,13 +14,11 @@
 # along with the project High Tekerz 2013 Vision Code.  If not, see <http://www.gnu.org/licenses/>.
 
 
-import operator
 import numpy as np
 import cv2
 import cv
 import math
 from Point import Point
-import pprint
 
 robot = False
 
@@ -326,8 +324,6 @@ class DiscFinder:
     # an it's calculated target point
     discs = []
     discBlobs = []
-    
-    pp = pprint.PrettyPrinter(indent=4)
     
     # Should work
     if robot:
