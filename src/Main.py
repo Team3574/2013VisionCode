@@ -54,48 +54,41 @@ if __name__ == '__main__':
         cv2.createTrackbar("V-Max", "bars", discFinder.tmax3, 255, discFinder.max3)
 
     if camera:
-        # Creeate window
-        cv2.namedWindow("Processed")
-        cv2.namedWindow("Processed2")
+        if debug:
+            # Creeate window
+            cv2.namedWindow("Processed")
+            cv2.namedWindow("Processed2")
+        
         # Create Video Capture
         cap = cv2.VideoCapture(cameraNumber1)
         cap2 = cv2.VideoCapture(cameraNumber2)
         
-        while True:
+        while cv2.waitKey(30) < 10:
             # Get the current camera image
             ret, img = cap.read()
             ret2, img2 = cap2.read()
             
             # Returns the image and the ammount of squares found
-            img, num = targetFinder.find_targets(img, debug = debug)
+            img = targetFinder.find_targets(img, debug = debug)
             
-            img2, num = discFinder.find_discs(img2, debug = debug)
+            img2 = discFinder.find_discs(img2, debug = debug)
                     
-            # Show the processed image
-            cv2.imshow('Processed', img)
-            cv2.imshow('Processed2', img2)
-            
-            # Wait for a key press
-            if cv2.waitKey(30) >= 10:
-                #Exit the wile loop
-                break
+            if debug: 
+                # Show the processed image
+                cv2.imshow('Processed', img)
+                cv2.imshow('Processed2', img2)
         
     else:
         for image in glob('targets2/*.jpg'):
             img = cv2.imread(image)
-            img, num = targetFinder.find_targets(img, debug = debug)
+            img = targetFinder.find_targets(img, debug = debug)
             cv2.namedWindow('processed' + str(image))
-            #print image
-            #print targetFinder.centerPoints
-            #print "\n"
             cv2.imshow('processed' + str(image), img)
             
-        for image in glob('discs2/*.jpg'):
+        for image in glob('discs/*.jpg'):
             img = cv2.imread(image)
-            img, num = discFinder.find_discs(img, debug = debug)
+            img = discFinder.find_discs(img, debug = debug)
             cv2.namedWindow('processed' + str(image))
-            #print image
-            #print "\n"
             cv2.imshow('processed' + str(image), img)
         cv2.waitKey(0)
             

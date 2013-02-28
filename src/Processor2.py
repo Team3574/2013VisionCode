@@ -11,7 +11,8 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with the project High Tekerz 2013 Vision Code.  If not, see <http://www.gnu.org/licenses/>.
+# along with the project High Tekerz 2013 Vision Code.  If not, see 
+# <http://www.gnu.org/licenses/>.
 
 
 import numpy as np
@@ -20,6 +21,7 @@ import cv
 import math
 from Point import Point
 
+# If on the robot network
 robot = False
 
 if robot:
@@ -27,8 +29,13 @@ if robot:
 
 class TargetFinder:
     """
-    Processor: Used to process images
+    TargetFinder: Used to process squares
     """
+
+    FOCAL_LENGTH = 8 * 0.03937
+    TOP_TARGET_HEIGHT = 80 / 0.03937
+
+    SENSOR_HEIGHT = 15 / 0.03937
     
     tmin1 = 0
     tmin2 = 0
@@ -42,13 +49,14 @@ class TargetFinder:
     centerPointsDict = {}
     
     imgSize = 0
+
     
     if robot:
         client = nt_client.NetworkTableClient("3574")
     
     def find_targets(self, img, debug = True):
         """
-        find_squares: used to find squares in an image
+        find_targets: used to find squares in an image
         
         params:
             img: image to process
@@ -83,7 +91,6 @@ class TargetFinder:
     
         # Show the threshed image
         if debug:
-            #cv2.imshow('thresh' + str(self.t), thresh);
             cv2.imshow('thresh', thresh);
     
         # Storage for squares
@@ -134,97 +141,14 @@ class TargetFinder:
         if debug:
             # Draw all the squares
             cv2.polylines(img, squares, True, (0, 255, 0), 4)
-            
+
             for i, center in self.centerPointsDict.iteritems():
                 if center is not None:
                     cv2.putText(img, str(i), center.getTuple(), cv2.FONT_HERSHEY_SIMPLEX, 1, (255,0,0))
                 
     
-        return img, len(squares)
-        
-    def classifyTargets(self):
-        classified = self.centerPoints
-        numberOfTargets = 0
-
-        # Handle more than 4 found points
-        if len(classified) > 4:
-            topIndex = self.findTopTargetPoint(classified)
-            
-            # We have extras on the right
-            if (topIndex) < 1:
-                pass
-            # We have extras on the left
-            elif topIndex > 1:
-                pass
-
-        # Handle 4 points
-        elif len(classified) == 4:
-            numberOfTargets = 4
-
-            bottomIndex = self.findBottomTargetPoint(classified)
-            print classified, bottomIndex, "Bottom"
-
-            # Move bottom to the right
-            if (bottomIndex != 3):
-                classified.append(classified.pop(bottomIndex))
-
-            print classified, "Bottom Moved"
-
-            topIndex = self.findTopTargetPoint(classified)
-
-            # Move top to index 1
-            if (topIndex  != 1):
-                print classified , topIndex, "Top"
-                classified[1], classified[topIndex] = classified[topIndex], classified[1]
-                print classified, "Top Moved"
-
-            # If the middles are wrong switch them
-            if self.centerPoints[0].x > self.centerPoints[2].x:
-                self.centerPoints[0], self.centerPoints[2] = self.centerPoints[2], self.centerPoints[0]
-            print classified
-
-        #classify 3 targets
-        elif len(classified) == 3:
-
-            pass
-
-        return classified, numberOfTargets
-
-
-    def findTopTargetPoint(self, points):
-
-        top = Point(10000,10000)
-        position = None
-
-        i = 0
-        for point in points:
-            if (point.y < top.y):
-                top = point
-                position = i
-            i = i+1
-
-        if top.y == 10000:
-            return None
-        return position
-
-    def findBottomTargetPoint(self, points):
-
-        bottom = Point(0,0)
-        position = None
-
-        i = 0
-        for point in points:
-            if (point.y > bottom.y):
-                bottom = point
-                position = i
-            i = i+1
-
-        if bottom.y == 0:
-            return None
-        return position
+        return img
     
-    def calculateDistance(self, rect):
-        print "test"
 
     def sortTargets(self, points):
         points = sorted(points, key=lambda point: point.x)
@@ -232,17 +156,17 @@ class TargetFinder:
         if len(points) == 4:
             return {"mid-left":points[0], "top":points[1], "mid-right":points[2], "bottom":points[3]}
 
+        ret = dict()
+
         # New way
         if len(points) == 3:
             angleOneToTwo = self.lineAngle(points[0], points[1])
             angleTwoToThree = self.lineAngle(points[1], points[2])
             
-            #print angleOneToTwo, "One to two | ", angleTwoToThree, "Two to three"
-
-            ret = dict()
+            print angleOneToTwo, "One to two | ", angleTwoToThree, "Two to three"
 
             # If it is less than 0 we have a left and middle
-            if angleOneToTwo < 0:
+            if int(angleOneToTwo) in range(-36, -14):
                 ret["mid-left"] = points[0]
                 ret["top"] = points[1]
 
@@ -252,7 +176,7 @@ class TargetFinder:
                 else:
                     ret["mid-right"] = points[2]
                     ret["bottom"] = None
-            elif int(angleOneToTwo) in range(0, 4):
+            elif int(angleOneToTwo) in range(0, 4) or int(angleOneToTwo) in range(-11, -6):
                 ret["mid-left"] = points[0]
                 ret["top"] = None
                 ret["mid-right"] = points[1]
@@ -262,7 +186,44 @@ class TargetFinder:
                 ret["top"] = points[0]
                 ret["mid-right"] = points[1]
                 ret["bottom"] = points[2]
+            return ret
 
+        if len(points) == 2:
+            angle = self.lineAngle(points[0], points[1])
+            
+            print angle, "Angle"
+
+            # If it is less than 0 we have a left and middle
+            if int(angle) in range(-36, -14):
+                ret["mid-left"] = points[0]
+                ret["top"] = points[1]
+                ret["mid-right"] = None
+                ret["bottom"] = None
+            elif int(angle) in range(0, 4) or int(angle) in range(-11, -6):
+                ret["mid-left"] = points[0]
+                ret["top"] = None
+                ret["mid-right"] = points[1]
+                ret["bottom"] = None
+            elif angle > 43:
+                ret["mid-left"]= None
+                ret["top"] = points[0]
+                ret["mid-right"] = None
+                ret["bottom"] = points[1]
+            elif angle > 42.5:
+                ret["mid-left"]= points[0]
+                ret["top"] = None
+                ret["mid-right"] = None
+                ret["bottom"] = points[1]
+            elif angle > 40:
+                ret["mid-left"]= None
+                ret["top"] = None
+                ret["mid-right"] = points[0]
+                ret["bottom"] = points[1]
+            elif int(angle) in range(5, 10):
+                ret["mid-left"]= None
+                ret["top"] = points[0]
+                ret["mid-right"] = points[1]
+                ret["bottom"] = None
             return ret
 
         dic = {}
@@ -274,7 +235,7 @@ class TargetFinder:
     def lineLength(self, point1, point2):
         ans = pow(point2.x - point1.x, 2) + pow(point2.y - point1.y, 2)
         ans = math.sqrt(ans);
-        return ans
+        return ans 
 
     def lineAngle(self, point1, point2):
         return math.atan2(point2.y - point1.y, point2.x - point2.y) * 180 / math.pi
@@ -283,8 +244,7 @@ class TargetFinder:
         centerX = (rect[0][0][0] + rect[1][0][0] + rect[2][0][0] + rect[3][0][0]) / 4
         centerY = (rect[0][0][1] + rect[1][0][1] + rect[2][0][1] + rect[3][0][1]) / 4
         return Point(centerX, centerY)
-                
-        
+
     def min1(self, x):
         self.tmin1 = x
 
@@ -325,11 +285,16 @@ class DiscFinder:
     discs = []
     discBlobs = []
     
+    imgSize = 0
+
     # Should work
     if robot:
         client = nt_client.NetworkTableClient("3574")
     
     def find_discs(self, img, debug = True):
+
+        if self.imgSize == 0:
+            self.imgSize = img.shape
         
         # Blur the image
         img = cv2.GaussianBlur(img, (5,5), 0)
@@ -410,15 +375,18 @@ class DiscFinder:
                 cv2.ellipse(img, disc[0], (255,0,0))
                 cv2.circle(img, disc[1], 4, (255,0,0), 3)
             
-        return img, 0
+        return img
     
     def sortDiscs(self):
         if len(self.discs) > 0:
             tmpDiscs = []
             self.discs = sorted(self.discs, key=lambda x: x[1][1])
+            middle = 640 / 2
+            # TODO: Use brain latter when not so tired and do the simple math
+            offset = 1 - float(self.discs[0][1][1]) / middle
             if robot:
-                self.client.setValue("/Vision/DiscLocation", float(self.discs[0][1][0]))
-            print "Value Sent", float(self.discs[0][1][0])
+                self.client.setValue("/Vision/DiscLocation", offset)
+            print "Value Sent", offset, "| Middle", middle
             return
         if robot:
             self.client.setValue("/Vision/DiscLocation", -10000.0)

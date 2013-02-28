@@ -35,3 +35,34 @@ Line length = sqrt(sqrt(x2 - x1) + sqrt(y2 - y1))
                 return {"mid-left":points[0],"top":points[1], "mid-right":None, "bottom":points[2]}
             else:
                 return {"mid-left":points[0],"top":points[1], "mid-right":points[2], "bottom":None}
+
+[array(
+    [
+        [
+            [518, 303]
+        ],
+
+        [
+            [465, 307]
+        ],
+
+        [
+            [466, 359]
+        ],
+
+        [
+            [520, 362]
+        ]
+    ], dtype=int32), array([[[312, 160]],
+
+       [[312, 213]],
+
+       [[438, 214]],
+
+       [[435, 158]]], dtype=int32), array([[[ 33, 156]],
+
+       [[ 27, 206]],
+
+       [[141, 209]],
+
+       [[136, 157]]], dtype=int32)]
