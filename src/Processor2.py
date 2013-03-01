@@ -158,7 +158,7 @@ class TargetFinder:
         points = sorted(points, key=lambda point: point.x)
 
         if len(points) == 4:
-            return {"mid-left":points[0], "top":points[1], "mid-right":points[2], "bottom":points[3]}
+            return {"mid_left":points[0], "top":points[1], "mid_right":points[2], "bottom":points[3]}
 
         ret = dict()
 
@@ -171,24 +171,24 @@ class TargetFinder:
 
             # If it is less than 0 we have a left and middle
             if int(angleOneToTwo) in range(-36, -14):
-                ret["mid-left"] = points[0]
+                ret["mid_left"] = points[0]
                 ret["top"] = points[1]
 
                 if angleTwoToThree > 20:
-                    ret["mid-right"] = None
+                    ret["mid_right"] = None
                     ret["bottom"] = points[2]
                 else:
-                    ret["mid-right"] = points[2]
+                    ret["mid_right"] = points[2]
                     ret["bottom"] = None
             elif int(angleOneToTwo) in range(0, 4) or int(angleOneToTwo) in range(-11, -6):
-                ret["mid-left"] = points[0]
+                ret["mid_left"] = points[0]
                 ret["top"] = None
-                ret["mid-right"] = points[1]
+                ret["mid_right"] = points[1]
                 ret["bottom"] = points[2]
             else:
-                ret["mid-left"] = None
+                ret["mid_left"] = None
                 ret["top"] = points[0]
-                ret["mid-right"] = points[1]
+                ret["mid_right"] = points[1]
                 ret["bottom"] = points[2]
             return ret
 
@@ -199,34 +199,34 @@ class TargetFinder:
 
             # If it is less than 0 we have a left and middle
             if int(angle) in range(-36, -14):
-                ret["mid-left"] = points[0]
+                ret["mid_left"] = points[0]
                 ret["top"] = points[1]
-                ret["mid-right"] = None
+                ret["mid_right"] = None
                 ret["bottom"] = None
             elif int(angle) in range(0, 4) or int(angle) in range(-11, -6):
-                ret["mid-left"] = points[0]
+                ret["mid_left"] = points[0]
                 ret["top"] = None
-                ret["mid-right"] = points[1]
+                ret["mid_right"] = points[1]
                 ret["bottom"] = None
             elif angle > 43:
-                ret["mid-left"]= None
+                ret["mid_left"]= None
                 ret["top"] = points[0]
-                ret["mid-right"] = None
+                ret["mid_right"] = None
                 ret["bottom"] = points[1]
             elif angle > 42.5:
-                ret["mid-left"]= points[0]
+                ret["mid_left"]= points[0]
                 ret["top"] = None
-                ret["mid-right"] = None
+                ret["mid_right"] = None
                 ret["bottom"] = points[1]
             elif angle > 40:
-                ret["mid-left"]= None
+                ret["mid_left"]= None
                 ret["top"] = None
-                ret["mid-right"] = points[0]
+                ret["mid_right"] = points[0]
                 ret["bottom"] = points[1]
             elif int(angle) in range(5, 10):
-                ret["mid-left"]= None
+                ret["mid_left"]= None
                 ret["top"] = points[0]
-                ret["mid-right"] = points[1]
+                ret["mid_right"] = points[1]
                 ret["bottom"] = None
             return ret
 
@@ -240,18 +240,18 @@ class TargetFinder:
             if point is not None:
                 offset = self.calculateOffset(point)
                 if robot:
-                    self.client.setValue(name+"_exists", True)
-                    self.client.setValue(name+"_x", offset.x)
-                    self.client.setValue(name+"_y", offset.y)
+                    self.client.setValue("/vision/"+name+"_exists", True)
+                    self.client.setValue("/vision/"+name+"_x", offset.x)
+                    self.client.setValue("/vision/"+name+"_y", offset.y)
                 if self.debug:
-                    print name+"_exists", True
-                    print name+"_x", offset.x
-                    print name+"_y", offset.y
+                    print "/vision/"+name+"_exists", True
+                    print "/vision/"+name+"_x", offset.x
+                    print "/vision/"+name+"_y", offset.y
             else:
                 if robot:
-                    self.client.setValue(name+"_exists", False)
+                    self.client.setValue("/vision/"+name+"_exists", False)
                 if self.debug:
-                    print name+"_exists", False
+                    print "/vision/"+name+"_exists", False
 
     def calculateOffset(self, point):
         x = float(point.x) / self.imgSize[1] - 1
@@ -406,11 +406,11 @@ class DiscFinder:
             # TODO: Use brain latter when not so tired and do the simple math
             offset = 1 - float(self.discs[0][1][1]) / middle
             if robot:
-                self.client.setValue("/Vision/DiscLocation", offset)
+                self.client.setValue("/vision/disc_location", offset)
             print "Value Sent", offset, "| Middle", middle
             return
         if robot:
-            self.client.setValue("/Vision/DiscLocation", -10000.0)
+            self.client.setValue("/vision/disc_location", -10000.0)
 
     def min1(self, x):
         self.tmin1 = x
