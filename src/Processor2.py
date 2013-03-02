@@ -21,7 +21,10 @@ import math
 from Point import Point
 
 # If on the robot network
-robot = False
+robot = True
+
+# Frame rate to send only 10 messages a second
+frameRate = 60
 
 if robot:
     import nt_client
@@ -50,6 +53,10 @@ class TargetFinder:
     imgSize = 0
 
     debug = False
+
+    frameCheck = frameRate / 10;
+
+    currentFrame = 0
 
 
     if robot:
@@ -140,7 +147,8 @@ class TargetFinder:
         #self.centerPoints, num = self.classifyTargets()
         self.centerPointsDict = self.sortTargets(self.centerPoints)
 
-        self.sendInfo(self.centerPointsDict)
+        if self.currentFrame % self.frameCheck == 0:
+            self.sendInfo(self.centerPointsDict)
 
         if debug:
             # Draw all the squares
@@ -151,6 +159,8 @@ class TargetFinder:
                     cv2.putText(img, str(i), center.getTuple(), cv2.FONT_HERSHEY_SIMPLEX, 1, (255,0,0))
 
 
+        self.currentFrame += 1
+
         return img
 
 
@@ -158,7 +168,7 @@ class TargetFinder:
         points = sorted(points, key=lambda point: point.x)
 
         if len(points) == 4:
-            return {"mid_left":points[0], "top":points[1], "mid_right":points[2], "bottom":points[3]}
+            return {"mid_left":points[0], "top":points[1], "mid_right":points[2], "bottom":points[3], "unknown":None}
 
         ret = dict()
 
@@ -167,7 +177,7 @@ class TargetFinder:
             angleOneToTwo = self.lineAngle(points[0], points[1])
             angleTwoToThree = self.lineAngle(points[1], points[2])
 
-            print angleOneToTwo, "One to two | ", angleTwoToThree, "Two to three"
+            #print angleOneToTwo, "One to two | ", angleTwoToThree, "Two to three"
 
             # If it is less than 0 we have a left and middle
             if int(angleOneToTwo) in range(-36, -14):
@@ -190,63 +200,75 @@ class TargetFinder:
                 ret["top"] = points[0]
                 ret["mid_right"] = points[1]
                 ret["bottom"] = points[2]
+            ret["unknown"] = None
             return ret
 
         if len(points) == 2:
             angle = self.lineAngle(points[0], points[1])
 
-            print angle, "Angle"
+            #print angle, "Angle"
 
             # If it is less than 0 we have a left and middle
-            if int(angle) in range(-36, -14):
+            if int(angle) in range(-36, -11):
                 ret["mid_left"] = points[0]
                 ret["top"] = points[1]
                 ret["mid_right"] = None
                 ret["bottom"] = None
-            elif int(angle) in range(0, 4) or int(angle) in range(-11, -6):
+                ret["unknown"] = None
+            elif int(angle) in range(0, 4) or int(angle) in range(-11, 0):
                 ret["mid_left"] = points[0]
                 ret["top"] = None
                 ret["mid_right"] = points[1]
                 ret["bottom"] = None
+                ret["unknown"] = None
             elif angle > 43:
                 ret["mid_left"]= None
                 ret["top"] = points[0]
                 ret["mid_right"] = None
                 ret["bottom"] = points[1]
+                ret["unknown"] = None
             elif angle > 42.5:
                 ret["mid_left"]= points[0]
                 ret["top"] = None
                 ret["mid_right"] = None
                 ret["bottom"] = points[1]
+                ret["unknown"] = None
             elif angle > 40:
                 ret["mid_left"]= None
                 ret["top"] = None
                 ret["mid_right"] = points[0]
                 ret["bottom"] = points[1]
+                ret["unknown"] = None
             elif int(angle) in range(5, 10):
                 ret["mid_left"]= None
                 ret["top"] = points[0]
                 ret["mid_right"] = points[1]
                 ret["bottom"] = None
+                ret["unknown"] = None
             return ret
-
-        dic = {}
-        for i, point in enumerate(points):
-            dic[i] = point
-        return dic
+        elif len(points) == 1:
+            ret["mid_left"]= None
+            ret["top"] = None
+            ret["mid_right"] = None
+            ret["bottom"] = None
+            ret["unknown"] = points[0]
+            
+            return ret
+        else:
+            return {"mid_left":None, "top":None, "mid_right":None, "bottom":None, "unknown":None}
 
     def sendInfo(self, dic):
         for name, point in dic.iteritems():
             if point is not None:
                 offset = self.calculateOffset(point)
                 if robot:
-                    self.client.setValue("/vision/"+name+"_exists", True)
-                    self.client.setValue("/vision/"+name+"_x", offset.x)
-                    self.client.setValue("/vision/"+name+"_y", offset.y)
+                    self.client.setValue("/vision/"+str(name)+"_exists", True)
+                    self.client.setValue("/vision/"+str(name)+"_x", offset.x)
+                    self.client.setValue("/vision/"+str(name)+"_y", offset.y)
                 if self.debug:
-                    print "/vision/"+name+"_exists", True
-                    print "/vision/"+name+"_x", offset.x
-                    print "/vision/"+name+"_y", offset.y
+                    print "/vision/"+str(name)+"_exists", True
+                    print "/vision/"+str(name)+"_x", offset.x
+                    print "/vision/"+str(name)+"_y", offset.y
             else:
                 if robot:
                     self.client.setValue("/vision/"+name+"_exists", False)
@@ -254,9 +276,9 @@ class TargetFinder:
                     print "/vision/"+name+"_exists", False
 
     def calculateOffset(self, point):
-        x = float(point.x) / self.imgSize[1] - 1
-        y = float(point.y) / self.imgSize[0] - 1
-        return Point(x, y)
+        x = float(point.x - self.imgSize[1]/2) / self.imgSize[1]
+        y = float(point.y - self.imgSize[0]/2) / self.imgSize[0]
+        return Point(x, -y)
 
     def lineLength(self, point1, point2):
         ans = pow(point2.x - point1.x, 2) + pow(point2.y - point1.y, 2)
@@ -313,6 +335,10 @@ class DiscFinder:
 
     imgSize = 0
 
+    frameCheck = frameRate / 10;
+
+    currentFrame = 0
+
     # Should work
     if robot:
         client = nt_client.NetworkTableClient("3574")
@@ -346,8 +372,8 @@ class DiscFinder:
         THRESH_MAX = np.array([self.thmax2],np.uint8)
 
         # Thresh again
-        thresh = cv2.inRange(thresh, THRESH_MIN, THRESH_MAX)
-        cv2.imshow('frisbeethresh', thresh)
+        #thresh = cv2.inRange(thresh, THRESH_MIN, THRESH_MAX)
+        #cv2.imshow('frisbeethresh', thresh)
 
         # Do canny
         thresh = cv2.Canny(thresh, 1, 1)
@@ -389,6 +415,10 @@ class DiscFinder:
                     bottom = (x + w/2, y + h)
                     self.discBlobs.append((circle, bottom))
         self.sortDiscs()
+
+        if self.currentFrame % self.frameCheck == 0:
+            self.sendInfo()
+        
         if debug:
             for disc in self.discs:
                 cv2.ellipse(img, disc[0], (0,255,0))
@@ -402,15 +432,24 @@ class DiscFinder:
     def sortDiscs(self):
         if len(self.discs) > 0:
             self.discs = sorted(self.discs, key=lambda x: x[1][1])
-            middle = 640 / 2
-            # TODO: Use brain latter when not so tired and do the simple math
-            offset = 1 - float(self.discs[0][1][1]) / middle
-            if robot:
-                self.client.setValue("/vision/disc_location", offset)
-            print "Value Sent", offset, "| Middle", middle
-            return
-        if robot:
-            self.client.setValue("/vision/disc_location", -10000.0)
+
+
+    def sendInfo(self):
+        if len(self.discs) > 0:
+            # sefl.discs contains a bunch of rotated rectangles and a centerpoint
+            # to get the center point it is [0][1][0] for x and [0][1][1] for the y
+            point = Point(float(self.discs[0][1][0]), self.discs[0][1][1])
+            calculatedOffset = self.calculateOffset(point)
+            self.client.setValue("/vision/disc_x", calculatedOffset.x)
+            self.client.setValue("/vision/disc_y", calculatedOffset.y)
+            self.client.setValue("/vision/disc_exists", True)
+        else:
+            self.client.setValue("/vision/disc_location_exists", False)
+
+    def calculateOffset(self, point):
+        x = float(point.x - self.imgSize[1]/2) / self.imgSize[1]
+        y = float(point.y - self.imgSize[0]/2) / self.imgSize[0]
+        return Point(x, -y)
 
     def min1(self, x):
         self.tmin1 = x

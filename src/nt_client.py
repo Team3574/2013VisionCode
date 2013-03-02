@@ -30,7 +30,7 @@ class EntryValue:
     def __repr__(self):
         return str((self.name, self.entryId, self.seqId, self.value))
 
-class NetworkTableClient(object):    
+class NetworkTableClient(object):
     def __init__(self, team):
         teamPad = team.rjust(5, '0')
         c1 = int(teamPad[0:3])
@@ -57,7 +57,7 @@ class NetworkTableClient(object):
             thread.start_new_thread(self.keepAlive, ())
             # Hacky way to give the initial value load time to process
             time.sleep(0.5)
-            
+
         except socket.error, e:
             print e
             print 'Could not connect to chat server @%d' % self.port
@@ -72,7 +72,7 @@ class NetworkTableClient(object):
         data = data[(nameLen + 2):]
 
         t = data[0]
-        
+
         entryId = self.getNumFromBytes(data[1:3])
         seq = self.getNumFromBytes(data[3:5])
 
@@ -106,31 +106,31 @@ class NetworkTableClient(object):
             entry = EntryValue(name, 0xFFFF, 0x0, value)
             if entry.getType() == bool:
                 updateMessage = "\x10" + struct.pack("!H" + str(len(name)) + "sBHH?", len(name), name, 0x00, entry.entryId, entry.seqId, entry.value);
-            
+
             elif entry.getType() == float:
                 updateMessage = "\x10" + struct.pack("!H" + str(len(name)) + "sBHHd", len(name), name, 0x01, entry.entryId, entry.seqId, entry.value);
-            
+
             elif entry.getType() == str:
                 strLen = len(value)
                 updateMessage = "\x10" + struct.pack("!H" + str(len(name)) + "sBHHH" + str(strLen) + "s", len(name), name, 0x02, entry.entryId, entry.seqId, strLen, entry.value);
             else:
                 updateMessage = ""
-            
+
         else:
             entryId = self.entryIdByName[name]
             entry = self.tableValues[entryId]
 
             if type(value) != entry.getType():
                 raise TypeError('Wrong type for ' + name + ' Got:' + str(type(value)) + ' Need:' + str(entry.getType()))
-            
+
             if entry.getType() == bool:
                 entry.update(value, entry.seqId + 1)
                 updateMessage = "\x11" + struct.pack("!HH?", entry.entryId, entry.seqId, entry.value);
-            
+
             elif entry.getType() == float:
                 entry.update(value, entry.seqId + 1)
                 updateMessage = "\x11" + struct.pack("!HHd", entry.entryId, entry.seqId, entry.value);
-            
+
             elif entry.getType() == str:
                 strLen = len(value)
                 entry.update(value, entry.seqId + 1)
@@ -138,8 +138,8 @@ class NetworkTableClient(object):
 
         self.sendLock.acquire()
         self.sock.send(updateMessage)
-        self.sendLock.release()    
-            
+        self.sendLock.release()
+
     def getValue(self, name):
         if not self.entryIdByName.has_key(name):
             return None
@@ -185,7 +185,8 @@ class NetworkTableClient(object):
         while True:
             d = bytearray(self.sock.recv(4096 * 1024))
 
-            while d != None and len(d) > 0:
+            # while d != None and len(d) > 0:
+            while d != None and len(d) > 1:
                 msgType = d[0]
 
                 if msgType == 0x10:
@@ -212,7 +213,7 @@ if __name__ == "__main__":
 
     if len(sys.argv)<1:
         sys.exit('Usage: %s team number' % sys.argv[0])
-        
+
     client = NetworkTableClient(sys.argv[1])
 
 
@@ -221,5 +222,5 @@ if __name__ == "__main__":
     client.setValue("/what/is/down", True)
     client.setValue("/what/is/left", 1234.0)
     client.setValue("/what/is/right", 1337.0)
-    
+
     print client.getValue("/SmartDashboard/PizzaBoxTilt/i")
